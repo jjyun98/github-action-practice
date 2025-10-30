@@ -1,0 +1,43 @@
+name: Weather Notification
+
+on:
+  workflow_dispatch:
+
+jobs:
+  weather:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install requests
+        run: pip install requests
+      
+      - name: Send Weather to Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          python << 'EOF'
+          import requests
+          import os
+          
+          # 날씨
+          try:
+              weather = requests.get('https://wttr.in/Seoul?format=%C+%t').text.strip()
+          except:
+              weather = "날씨 정보 없음"
+          
+          # Slack 전송
+          payload = {
+              "blocks": [
+                  {"type": "header", "text": {"type": "plain_text", "text": "☁️ 오늘의 서울 날씨"}},
+                  {"type": "section", "text": {"type": "mrkdwn", "text": f"*{weather}*"}}
+              ]
+          }
+          
+          requests.post(os.environ['SLACK_WEBHOOK_URL'], json=payload)
+          print("✅ 전송 완료!")
+          EOF
